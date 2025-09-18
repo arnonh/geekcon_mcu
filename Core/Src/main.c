@@ -111,6 +111,9 @@ int main(void)
   /* USER CODE BEGIN 2 */
   Communication_Init(&huart1);
   HAL_UART_Receive_IT(&huart1, uart_rx_buffer, 1);
+  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
+    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -120,6 +123,12 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 32767);
+    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
+    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 32767);
+    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
+    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 0);
+    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 32767);
   }
   /* USER CODE END 3 */
 }
