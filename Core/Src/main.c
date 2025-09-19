@@ -52,6 +52,8 @@ PCD_HandleTypeDef hpcd_USB_FS;
 
 /* USER CODE BEGIN PV */
 uint8_t uart_rx_buffer[1];
+volatile int32_t encoder1_count = 0;
+volatile int32_t encoder2_count = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -125,9 +127,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    char* msg = "Hello World!\r\n";
-    HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
-    HAL_Delay(5000);
+    HAL_Delay(10);
   }
   /* USER CODE END 3 */
 }
@@ -500,6 +500,18 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+  if (GPIO_Pin == GPIO_PIN_4)
+  {
+    encoder1_count++;
+  }
+  else if (GPIO_Pin == GPIO_PIN_6)
+  {
+    encoder2_count++;
+  }
+}
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
   if (huart->Instance == USART1)
@@ -541,19 +553,49 @@ void App_Set_Motors(int16_t motor1, int16_t motor2)
 
 void App_Get_Encoders(int32_t* encoder1, int32_t* encoder2)
 {
-  // TODO: Implement encoder reading logic
-  *encoder1 = 0;
-  *encoder2 = 0;
+  *encoder1 = encoder1_count;
+  *encoder2 = encoder2_count;
 }
 
 void App_Reset_Encoders(void)
 {
-  // TODO: Implement encoder reset logic
+  encoder1_count = 0;
+  encoder2_count = 0;
 }
 
 void App_Move_Steps(int32_t motor1_steps, int32_t motor2_steps)
 {
-  // TODO: Implement motor control logic to move each motor by the specified number of steps
+  App_Reset_Encoders();
+
+  int16_t motor1_speed = motor1_steps > 0 ? 500 : -500;
+  int16_t motor2_speed = motor2_steps > 0 ? 500 : -500;
+
+  App_Set_Motors(motor1_speed, motor2_speed);
+
+  while (1)
+  {
+    int32_t current_steps1, current_steps2;
+    App_Get_Encoders(&current_steps1, &current_steps2);
+
+    if (abs(current_steps1) >= abs(motor1_steps))
+    {
+      motor1_speed = 0;
+    }
+
+    if (abs(current_steps2) >= abs(motor2_steps))
+    {
+      motor2_speed = 0;
+    }
+
+    App_Set_Motors(motor1_speed, motor2_speed);
+
+    if (motor1_speed == 0 && motor2_speed == 0)
+    {
+      break;
+    }
+
+    HAL_Delay(10);
+  }
 }
 /* USER CODE END 4 */
 

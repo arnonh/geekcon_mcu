@@ -59,3 +59,31 @@ A binary protocol is used for communication between the Raspberry Pi and the MCU
 | `MSG_ACK`          | `0x12` | `[acked_cmd_id(u8)]`                          | Acknowledges a command was received and processed.|
 | `MSG_PONG`         | `0x13` | None                                          | Response to `CMD_PING`.                           |
 | `MSG_ERROR`        | `0xEE` | `[error_code(u8)]`                            | Reports an error (e.g., bad checksum).            |
+
+### Message Examples
+
+#### `CMD_SET_MOTORS`
+
+Set motor 1 speed to 500 and motor 2 speed to -500.
+
+*   **Start of Frame:** `0xAA`
+*   **Command ID:** `0x01`
+*   **Payload Length:** `4`
+*   **Payload:** `0x01F4` (500), `0xFE0C` (-500) -> `F4 01 0C FE` (little-endian)
+*   **Checksum:** `0x01 ^ 0x04 ^ 0xF4 ^ 0x01 ^ 0x0C ^ 0xFE = 0x02`
+*   **End of Frame:** `0x55`
+
+**Message:** `AA 01 04 F4 01 0C FE 02 55`
+
+#### `MSG_ENCODER_DATA`
+
+Encoder 1 value is 10000 and encoder 2 value is 20000.
+
+*   **Start of Frame:** `0xAA`
+*   **Message ID:** `0x11`
+*   **Payload Length:** `8`
+*   **Payload:** `10000`, `20000` -> `10 27 00 00 20 4E 00 00` (little-endian)
+*   **Checksum:** `0x11 ^ 0x08 ^ 0x10 ^ 0x27 ^ 0x00 ^ 0x00 ^ 0x20 ^ 0x4E ^ 0x00 ^ 0x00 = 0x40`
+*   **End of Frame:** `0x55`
+
+**Message:** `AA 11 08 10 27 00 00 20 4E 00 00 40 55`
