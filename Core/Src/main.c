@@ -22,6 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "communication.h"
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -111,9 +112,10 @@ int main(void)
   /* USER CODE BEGIN 2 */
   Communication_Init(&huart1);
   HAL_UART_Receive_IT(&huart1, uart_rx_buffer, 1);
-  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
-  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
-    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
+  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
+  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
+  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
+  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -123,12 +125,9 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 32767);
-    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
-    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 32767);
-    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
-    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 0);
-    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 32767);
+    char* msg = "Hello World!\r\n";
+    HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+    HAL_Delay(5000);
   }
   /* USER CODE END 3 */
 }
@@ -356,7 +355,7 @@ static void MX_TIM2_Init(void)
   htim2.Instance = TIM2;
   htim2.Init.Prescaler = 0;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 4294967295;
+  htim2.Init.Period = 65535;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
@@ -512,7 +511,32 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
 void App_Set_Motors(int16_t motor1, int16_t motor2)
 {
-  // TODO: Implement motor control logic
+  if (motor1 > 1000) motor1 = 1000;
+  if (motor1 < -1000) motor1 = -1000;
+  if (motor2 > 1000) motor2 = 1000;
+  if (motor2 < -1000) motor2 = -1000;
+
+  if (motor1 > 0)
+  {
+    __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, motor1 * 65535 / 1000);
+    __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, 0);
+  }
+  else
+  {
+    __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, 0);
+    __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, -motor1 * 65535 / 1000);
+  }
+
+  if (motor2 > 0)
+  {
+    __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, motor2 * 65535 / 1000);
+    __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_4, 0);
+  }
+  else
+  {
+    __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, 0);
+    __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_4, -motor2 * 65535 / 1000);
+  }
 }
 
 void App_Get_Encoders(int32_t* encoder1, int32_t* encoder2)
