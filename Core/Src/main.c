@@ -135,12 +135,8 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
     App_Update_Motors();
-     HAL_Delay(10);
+    HAL_Delay(10);
     // App_Set_Motors(500, 500);
-    // HAL_Delay(2000);
-    // App_Set_Motors(-500, -500);
-    // HAL_Delay(2000);
-    // App_Set_Motors(0, 0);
     // HAL_Delay(2000);
     // App_Set_Motors(-500, -500);
     // HAL_Delay(2000);
@@ -529,7 +525,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     {
       encoder2_count++;
     }
-    else{
+    else if (motor2_speed < 0)
+    {
       encoder2_count--;
     }
     
@@ -542,7 +539,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     {
       encoder1_count++;
     }
-    else{
+    else if (motor1_speed < 0)
+    {
       encoder1_count--;
     }  }
 }
@@ -558,11 +556,10 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
 void App_Set_Motors(int16_t motor1, int16_t motor2)
 {
-
+  if (g_robot_mode != MODE_STEP) {
     if (motor1 == 0 && motor2 == 0) {
       g_robot_mode = MODE_STOP;
     } else {
-        if (g_robot_mode != MODE_STEP) {
       g_robot_mode = MODE_SPEED;
     }
   }
@@ -643,7 +640,6 @@ void App_Update_Motors(void)
 
     if (motor1_finished && motor2_finished) {
         g_robot_mode = MODE_STOP;
-        
     }
 
     App_Set_Motors(motor1_speed, motor2_speed);
