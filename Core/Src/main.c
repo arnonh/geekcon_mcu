@@ -23,6 +23,7 @@
 /* USER CODE BEGIN Includes */
 #include "communication.h"
 #include <string.h>
+#include <stdlib.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -54,6 +55,12 @@ PCD_HandleTypeDef hpcd_USB_FS;
 uint8_t uart_rx_buffer[1];
 volatile int32_t encoder1_count = 0;
 volatile int32_t encoder2_count = 0;
+volatile int32_t motor1_target_steps = 0;
+volatile int32_t motor2_target_steps = 0;
+volatile int32_t motor1_speed = 0;
+volatile int32_t motor2_speed = 0;
+RobotMode g_robot_mode = MODE_STOP;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -127,7 +134,16 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    HAL_Delay(10);
+    App_Update_Motors();
+     HAL_Delay(10);
+    // App_Set_Motors(500, 500);
+    // HAL_Delay(2000);
+    // App_Set_Motors(-500, -500);
+    // HAL_Delay(2000);
+    // App_Set_Motors(0, 0);
+    // HAL_Delay(2000);
+    // App_Set_Motors(-500, -500);
+    // HAL_Delay(2000);
   }
   /* USER CODE END 3 */
 }
@@ -500,16 +516,35 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+RobotMode App_Get_Mode(void)
+{
+  return g_robot_mode;
+}
+
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
   if (GPIO_Pin == GPIO_PIN_4)
   {
-    encoder1_count++;
+    if (motor2_speed > 0)
+    {
+      encoder2_count++;
+    }
+    else{
+      encoder2_count--;
+    }
+    
+    
+
   }
   else if (GPIO_Pin == GPIO_PIN_6)
   {
-    encoder2_count++;
-  }
+    if (motor1_speed > 0)
+    {
+      encoder1_count++;
+    }
+    else{
+      encoder1_count--;
+    }  }
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
@@ -523,10 +558,21 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
 void App_Set_Motors(int16_t motor1, int16_t motor2)
 {
+
+    if (motor1 == 0 && motor2 == 0) {
+      g_robot_mode = MODE_STOP;
+    } else {
+        if (g_robot_mode != MODE_STEP) {
+      g_robot_mode = MODE_SPEED;
+    }
+  }
+
   if (motor1 > 1000) motor1 = 1000;
   if (motor1 < -1000) motor1 = -1000;
   if (motor2 > 1000) motor2 = 1000;
   if (motor2 < -1000) motor2 = -1000;
+  motor1_speed=motor1;
+  motor2_speed=motor2;
 
   if (motor1 > 0)
   {
@@ -559,43 +605,72 @@ void App_Get_Encoders(int32_t* encoder1, int32_t* encoder2)
 
 void App_Reset_Encoders(void)
 {
+
+  motor1_target_steps = 0;
+  motor2_target_steps = 0;
   encoder1_count = 0;
   encoder2_count = 0;
 }
 
-void App_Move_Steps(int32_t motor1_steps, int32_t motor2_steps)
+void App_Update_Motors(void)
 {
-  App_Reset_Encoders();
-
-  int16_t motor1_speed = motor1_steps > 0 ? 500 : -500;
-  int16_t motor2_speed = motor2_steps > 0 ? 500 : -500;
-
-  App_Set_Motors(motor1_speed, motor2_speed);
-
-  while (1)
+  if (g_robot_mode == MODE_STEP)
   {
     int32_t current_steps1, current_steps2;
     App_Get_Encoders(&current_steps1, &current_steps2);
 
-    if (abs(current_steps1) >= abs(motor1_steps))
-    {
-      motor1_speed = 0;
+    int motor1_finished = 0;
+    motor1_speed = 0;
+    if (motor1_target_steps > 0 && current_steps1 < motor1_target_steps) {
+        motor1_speed = 500;
+    } else if (motor1_target_steps < 0 && current_steps1 > motor1_target_steps) {
+        motor1_speed = -500;
+    } else {
+        motor1_target_steps = 0;
+        motor1_finished = 1;
     }
 
-    if (abs(current_steps2) >= abs(motor2_steps))
-    {
-      motor2_speed = 0;
+    int motor2_finished = 0;
+    motor2_speed = 0;
+    if (motor2_target_steps > 0 && current_steps2 < motor2_target_steps) {
+        motor2_speed = 500;
+    } else if (motor2_target_steps < 0 && current_steps2 > motor2_target_steps) {
+        motor2_speed = -500;
+    } else {
+        motor2_target_steps = 0;
+        motor2_finished = 1;
+    }
+
+    if (motor1_finished && motor2_finished) {
+        g_robot_mode = MODE_STOP;
+        
     }
 
     App_Set_Motors(motor1_speed, motor2_speed);
-
-    if (motor1_speed == 0 && motor2_speed == 0)
-    {
-      break;
-    }
-
-    HAL_Delay(10);
+  } else if (g_robot_mode == MODE_STOP) {
+    App_Set_Motors(0, 0);
   }
+
+}
+
+void App_Move_Steps(int32_t motor1_steps, int32_t motor2_steps)
+{
+  // This function is non-blocking. It sets the target steps and initial motor speeds,
+  // but the actual motor control is handled by App_Update_Motors() in the main loop.
+  g_robot_mode = MODE_STEP;
+  App_Reset_Encoders();
+  motor1_target_steps = motor1_steps;
+  motor2_target_steps = motor2_steps;
+
+  int16_t motor1_speed = 0;
+  if (motor1_steps > 0) motor1_speed = 500;
+  if (motor1_steps < 0) motor1_speed = -500;
+
+  int16_t motor2_speed = 0;
+  if (motor2_steps > 0) motor2_speed = 500;
+  if (motor2_steps < 0) motor2_speed = -500;
+
+  App_Set_Motors(motor1_speed, motor2_speed);
 }
 /* USER CODE END 4 */
 

@@ -1,5 +1,3 @@
-# Geekcon Robot MCU Controller
-
 This project contains the firmware for the microcontroller (MCU) unit of a robot.
 
 ## Overview
@@ -49,6 +47,7 @@ A binary protocol is used for communication between the Raspberry Pi and the MCU
 | `CMD_RESET_ENCODERS` | `0x03` | None                                        | Resets the encoder counts to zero.                |
 | `CMD_PING`           | `0x04` | None                                        | Checks if the MCU is responsive.                  |
 | `CMD_MOVE_STEPS`     | `0x05` | `[motor1_steps(i32), motor2_steps(i32)]`    | Moves each motor a specified number of steps.     |
+| `CMD_GET_MODE`       | `0x06` | None                                        | Requests the current robot mode.                  |
 
 ### Messages (MCU -> Raspberry Pi)
 
@@ -57,4 +56,13 @@ A binary protocol is used for communication between the Raspberry Pi and the MCU
 | `MSG_ENCODER_DATA` | `0x11` | `[encoder1_val(i32), encoder2_val(i32)]`      | Response to `CMD_GET_ENCODERS`.                   |
 | `MSG_ACK`          | `0x12` | `[acked_cmd_id(u8)]`                          | Acknowledges a command was received and processed.|
 | `MSG_PONG`         | `0x13` | None                                          | Response to `CMD_PING`.                           |
+| `MSG_MODE_DATA`    | `0x14` | `[mode(u8)]`                                  | Response to `CMD_GET_MODE`.                       |
 | `MSG_ERROR`        | `0xEE` | `[error_code(u8)]`                            | Reports an error (e.g., bad checksum).            |
+
+### Robot Modes
+
+| Mode         | Value | Description                                                                 |
+|--------------|-------|-----------------------------------------------------------------------------|
+| `MODE_STOP`  | 0     | The robot is stopped.                                                       |
+| `MODE_STEP`  | 1     | The robot is moving a specific number of steps.                             |
+| `MODE_SPEED` | 2     | The robot's motors are being controlled directly by speed.                  |

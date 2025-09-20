@@ -57,7 +57,7 @@ void Communication_Handle_Rx(uint8_t* buf, uint32_t len) {
                 } else {
                     // Payload too large, reset
                     rx_state = STATE_WAIT_FOR_SOF;
-                }
+                 }
                 break;
             case STATE_READ_PAYLOAD:
                 rx_payload[rx_payload_index++] = byte;
@@ -114,6 +114,11 @@ static void process_message() {
                 Communication_Send_Ack(rx_command);
             }
             break;
+        case CMD_GET_MODE: {
+            RobotMode mode = App_Get_Mode();
+            Communication_Send_Mode(mode);
+            break;
+        }
         default:
             Communication_Send_Error(ERROR_UNKNOWN_CMD);
             break;
@@ -160,4 +165,10 @@ void Communication_Send_Pong(void) {
 
 void Communication_Send_Error(uint8_t error_code) {
     send_packet(MSG_ERROR, 1, &error_code);
+}
+
+void Communication_Send_Mode(RobotMode mode) {
+    ModeDataPayload payload;
+    payload.mode = mode;
+    send_packet(MSG_MODE_DATA, sizeof(payload), (uint8_t*)&payload);
 }

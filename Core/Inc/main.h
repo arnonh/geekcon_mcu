@@ -36,7 +36,11 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-
+typedef enum {
+    MODE_STOP,
+    MODE_STEP,
+    MODE_SPEED
+} RobotMode;
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -55,7 +59,8 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-
+void App_Update_Motors(void);
+RobotMode App_Get_Mode(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
